@@ -4,6 +4,8 @@ import { Home } from './pages/Home';
 import { Post } from './pages/Post';
 import { Categories } from './pages/Categories';
 import { About } from './pages/About';
+import { Projects } from './pages/Projects';
+import { Project } from './pages/Project';
 
 function App() {
   return (
@@ -13,6 +15,8 @@ function App() {
         <Route path="/post/:slug" element={<Post />} />
         <Route path="/categories" element={<Categories />} />
         <Route path="/about" element={<About />} />
+        <Route path="/projects" element={<Projects />} />
+        <Route path="/project/:slug" element={<Project />} />
       </Routes>
     </Router>
   );

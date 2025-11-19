@@ -48,6 +48,7 @@ export const Header: React.FC = () => {
           <nav className="hidden md:flex items-center space-x-8">
             <NavLink to="/">Home</NavLink>
             <NavLink to="/categories">Categories</NavLink>
+            <NavLink to="/projects">Projects</NavLink>
             <NavLink to="/about">About Me</NavLink>
             <div className="pl-4 border-l border-gray-200 dark:border-gray-700">
               <ThemeToggle />
@@ -71,22 +72,29 @@ export const Header: React.FC = () => {
       {isMenuOpen && (
         <div className="md:hidden border-t border-gray-200 dark:border-dark-border bg-white dark:bg-dark-bg animate-in slide-in-from-top-5">
           <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3 flex flex-col">
-            <Link 
-              to="/" 
+            <Link
+              to="/"
               onClick={() => setIsMenuOpen(false)}
               className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-200 hover:text-primary-600 hover:bg-gray-50 dark:hover:bg-gray-800"
             >
               Home
             </Link>
-            <Link 
-              to="/categories" 
+            <Link
+              to="/categories"
               onClick={() => setIsMenuOpen(false)}
               className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-200 hover:text-primary-600 hover:bg-gray-50 dark:hover:bg-gray-800"
             >
               Categories
             </Link>
-            <Link 
-              to="/about" 
+            <Link
+              to="/projects"
+              onClick={() => setIsMenuOpen(false)}
+              className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-200 hover:text-primary-600 hover:bg-gray-50 dark:hover:bg-gray-800"
+            >
+              Projects
+            </Link>
+            <Link
+              to="/about"
               onClick={() => setIsMenuOpen(false)}
               className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-200 hover:text-primary-600 hover:bg-gray-50 dark:hover:bg-gray-800"
             >

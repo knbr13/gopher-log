@@ -19,3 +19,15 @@ export interface Category {
   slug: string;
   count: number;
 }
+
+export interface Project {
+  name: string;
+  description: string;
+  githubUrl: string;
+  language: string;
+  stars?: number;
+  features: string[];
+  tags: string[];
+  slug: string;
+  demoUrl?: string;
+}
