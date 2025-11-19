@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>GopherLog | Backend Engineering</title>
+    <meta name="description" content="Personal blog of a Go Backend Engineer" />
+    
+    <!-- Fonts: Inter for UI, JetBrains Mono for Code -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS with Typography Plugin -->
+    <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
+    
+    <!-- Tailwind Configuration -->
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ['Inter', 'sans-serif'],
+              mono: ['JetBrains Mono', 'monospace'],
+            },
+            colors: {
+              primary: {
+                50: '#f0f9ff',
+                100: '#e0f2fe',
+                200: '#bae6fd',
+                300: '#7dd3fc',
+                400: '#38bdf8',
+                500: '#0ea5e9', // Sky-500 (Go Blue-ish)
+                600: '#0284c7',
+                700: '#0369a1',
+                800: '#075985',
+                900: '#0c4a6e',
+              },
+              dark: {
+                bg: '#09090b', // Zinc-950
+                card: '#18181b', // Zinc-900
+                border: '#27272a', // Zinc-800
+              }
+            },
+            typography: (theme) => ({
+              DEFAULT: {
+                css: {
+                  maxWidth: 'none',
+                  color: theme('colors.gray.700'),
+                  'h1, h2, h3, h4': {
+                    color: theme('colors.gray.900'),
+                    fontWeight: '700',
+                  },
+                  code: {
+                    color: theme('colors.primary.600'),
+                    backgroundColor: theme('colors.gray.100'),
+                    padding: '0.2em 0.4em',
+                    borderRadius: '0.25rem',
+                    fontWeight: '500',
+                  },
+                  'code::before': { content: '""' },
+                  'code::after': { content: '""' },
+                  pre: {
+                    backgroundColor: theme('colors.gray.900'),
+                    color: theme('colors.gray.100'),
+                    borderRadius: '0.5rem',
+                  },
+                },
+              },
+              invert: {
+                css: {
+                  color: theme('colors.gray.300'),
+                  'h1, h2, h3, h4': {
+                    color: theme('colors.white'),
+                  },
+                  code: {
+                    color: theme('colors.primary.400'),
+                    backgroundColor: theme('colors.gray.800'),
+                  },
+                  pre: {
+                    backgroundColor: theme('colors.gray.900'),
+                    border: '1px solid ' + theme('colors.gray.800'),
+                  },
+                },
+              },
+            }),
+          },
+        },
+      }
+    </script>
+
+    <!-- Highlight.js Theme (Atom One Dark) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+  <script type="importmap">
+{
+  "imports": {
+    "react/": "https://aistudiocdn.com/react@^19.2.0/",
+    "react": "https://aistudiocdn.com/react@^19.2.0",
+    "react-markdown": "https://aistudiocdn.com/react-markdown@^10.1.0",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+    "lucide-react": "https://aistudiocdn.com/lucide-react@^0.554.0",
+    "react-router-dom": "https://aistudiocdn.com/react-router-dom@^7.9.6",
+    "date-fns": "https://aistudiocdn.com/date-fns@^4.1.0",
+    "clsx": "https://aistudiocdn.com/clsx@^2.1.1",
+    "tailwind-merge": "https://aistudiocdn.com/tailwind-merge@^3.4.0",
+    "rehype-highlight": "https://aistudiocdn.com/rehype-highlight@^7.0.2"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+  <body class="bg-gray-50 text-gray-900 dark:bg-dark-bg dark:text-gray-100 transition-colors duration-300">
+    <div id="root"></div>
+  <script type="module" src="/index.tsx"></script>
+</body>
+</html>
