@@ -1,5 +1,5 @@
 import React from 'react';
-import { Github, Linkedin, Instagram, Twitter } from 'lucide-react';
+import { Github, Linkedin, Instagram } from 'lucide-react';
 
 const SocialLink: React.FC<{ href: string; icon: React.ReactNode; label: string }> = ({ href, icon, label }) => (
   <a
@@ -23,10 +23,9 @@ export const Footer: React.FC = () => {
           </div>
           
           <div className="flex space-x-6">
-            <SocialLink href="https://github.com" icon={<Github size={20} />} label="GitHub" />
-            <SocialLink href="https://linkedin.com" icon={<Linkedin size={20} />} label="LinkedIn" />
-            <SocialLink href="https://twitter.com" icon={<Twitter size={20} />} label="Twitter" />
-            <SocialLink href="https://instagram.com" icon={<Instagram size={20} />} label="Instagram" />
+            <SocialLink href="https://github.com/knbr13/" icon={<Github size={20} />} label="GitHub" />
+            <SocialLink href="https://www.linkedin.com/in/abdullah-alaadine/" icon={<Linkedin size={20} />} label="LinkedIn" />
+            <SocialLink href="https://www.instagram.com/a6h.aladdin" icon={<Instagram size={20} />} label="Instagram" />
           </div>
         </div>
       </div>
