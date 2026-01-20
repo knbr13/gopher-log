@@ -136,6 +136,17 @@ Have you ever had multiple goroutines execute the same expensive operation simul
 
 The \`singleflight\` package (in \`golang.org/x/sync/singleflight\`) provides a mechanism to suppress duplicate function calls. When multiple goroutines need to execute the same operation, \`singleflight\` ensures that the function is executed only once, and the result is shared with all callers.
 
+### How It Works
+
+When multiple goroutines call \`Do()\` with the **same key**, here's what happens:
+
+1. **First caller** executes the function
+2. **Subsequent callers** with the same key wait (block)
+3. **All callers** receive the **same result** when the function completes
+4. The \`shared\` boolean return value indicates whether the result was shared (true if you were not the first caller)
+
+> **Important:** Singleflight is **NOT a cache**. It only deduplicates **in-flight** requests. Once the function completes and all waiting goroutines receive the result, the next request with the same key will execute the function again. It's about preventing simultaneous duplicate work, not storing results for future use.
+
 ## The Problem: Thundering Herd
 
 Imagine a scenario where your cache expires, and suddenly 1000 concurrent requests hit your server trying to fetch the same data. Without \`singleflight\`, you'd execute 1000 identical database queries or API calls simultaneously. This is known as the "thundering herd" problem.
@@ -227,6 +238,8 @@ func getUserData(userID int) (User, error) {
     return result.(User), nil
 }
 \`\`\`
+
+> **Zero-Value Safety:** The zero-value of \`singleflight.Group\` is ready to use. You don't need to initialize it with \`singleflight.Group{}\` or \`new(singleflight.Group)\`. Just declare \`var g singleflight.Group\` and it's 100% safe to use. This follows Go's convention of zero values being usable.
 
 ## Real-World Example: API Gateway
 
@@ -342,6 +355,23 @@ func main() {
 }
 \`\`\`
 
+### Singleflight vs Cache: The Key Difference
+
+This is worth repeating because it's a common misconception:
+
+| **Singleflight** | **Cache** |
+|-----------------|-----------|
+| Prevents **simultaneous** duplicate work | Prevents **repeated** work over time |
+| Only deduplicates **in-flight** requests | Stores results for future use |
+| No persistence - once complete, next call executes again | Persists results across multiple calls |
+| Protects against **thundering herds** | Reduces latency & load over time |
+
+**Think of it this way:**
+- **Singleflight** = "Hey, we're already doing that, wait for the result!"
+- **Cache** = "We did that earlier, here's the result from last time!"
+
+They solve different problems and work best when used together!
+
 ## Advanced: Singleflight with Context
 
 Sometimes you need to cancel the in-flight operation. Here's how to use \`singleflight\` with context cancellation:
@@ -391,9 +421,10 @@ func (c *APIClient) GetUserProfileCtx(ctx context.Context, userID int) (*UserPro
 ## Best Practices
 
 1. **Use meaningful keys**: The key should uniquely identify the operation.
-2. **Combine with caching**: Use singleflight as a cache-stampede protection, not a replacement for caching.
+2. **Combine with caching**: Use singleflight as a cache-stampede protection, not a replacement for caching. Singleflight prevents duplicate work **while it's happening**, caching prevents repeated work **over time**. They serve different purposes and work great together!
 3. **Handle errors properly**: When the singleflight call errors, all waiting callers receive the error.
 4. **Forget results when done**: Use \`Forget()\` if you want to invalidate in-flight operations.
+5. **Zero-value is safe**: Remember that \`var g singleflight.Group\` is ready to use without initialization.
 
 \`\`\`go
 // Example: Forget in-flight results when data changes
