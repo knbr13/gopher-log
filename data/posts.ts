@@ -120,43 +120,294 @@ Ensure your APIs are idempotent. If a client retries a request (e.g., creating a
 `;
 
 const POST_3 = `---
-title: My Developer Setup for 2024
-date: 2024-01-10
-description: A look at my terminal, Neovim config, and the tools I use daily as a Go engineer.
-category: Career / Engineering Tips
-tags: [productivity, tools, vim]
-slug: my-developer-setup-2024
+title: Singleflight in Go: Preventing Duplicate Work
+date: 2025-01-20
+description: Learn how to use Go's singleflight package to prevent duplicate work and improve system performance with real-world examples.
+category: Go
+tags: [go, singleflight, concurrency, performance]
+slug: singleflight-in-go
 ---
 
-# My Developer Setup for 2024
+# Singleflight in Go: Preventing Duplicate Work
 
-Efficiency is key. Here is the hardware and software stack that powers my daily workflow.
+Have you ever had multiple goroutines execute the same expensive operation simultaneously? Maybe fetching the same data from a database, calling the same external API, or computing the same resource-intensive calculation. This is where Go's \`singleflight\` package shines.
 
-## The Terminal: Alacritty + Tmux
+## What is Singleflight?
 
-I live in the terminal. **Alacritty** provides GPU-accelerated performance, and **Tmux** manages my sessions.
+The \`singleflight\` package (in \`golang.org/x/sync/singleflight\`) provides a mechanism to suppress duplicate function calls. When multiple goroutines need to execute the same operation, \`singleflight\` ensures that the function is executed only once, and the result is shared with all callers.
 
-## Editor: Neovim
+## The Problem: Thundering Herd
 
-I switched to Neovim years ago and haven't looked back. With the implementation of LSP (Language Server Protocol), writing Go in Neovim feels just as powerful as VSCode but significantly faster.
+Imagine a scenario where your cache expires, and suddenly 1000 concurrent requests hit your server trying to fetch the same data. Without \`singleflight\`, you'd execute 1000 identical database queries or API calls simultaneously. This is known as the "thundering herd" problem.
 
-### Essential Plugins
+\`\`\`go
+// Without singleflight - PROBLEMATIC
+func getUserData(userID int) (User, error) {
+    // Every goroutine checks cache
+    if val, found := cache.Get(userID); found {
+        return val, nil
+    }
 
-*   \`nvim-lspconfig\`: Quick config for gopls.
-*   \`telescope.nvim\`: Fuzzy finder for everything.
-*   \`nvim-treesitter\`: Better syntax highlighting.
+    // Cache miss! Multiple goroutines will all hit the database
+    user, err := db.QueryUser(userID)
+    if err != nil {
+        return User{}, err
+    }
 
-## Go Tools
+    cache.Set(userID, user)
+    return user, nil
+}
+\`\`\`
 
-Apart from the standard toolchain, I rely on:
+## The Solution: Using Singleflight
 
-*   **golangci-lint**: For catching bugs early.
-*   **delve**: For debugging.
-*   **air**: For live reloading during development.
+Here's how to implement \`singleflight\` to solve this problem:
+
+\`\`\`go
+package main
+
+import (
+    "fmt"
+    "sync"
+    "time"
+    "golang.org/x/sync/singleflight"
+)
+
+type User struct {
+    ID    int
+    Name  string
+    Email string
+}
+
+var (
+    cache    = make(map[int]User)
+    cacheMu  sync.RWMutex
+    requestGroup singleflight.Group
+)
+
+func getUserData(userID int) (User, error) {
+    // Check cache first (fast path)
+    cacheMu.RLock()
+    if user, found := cache[userID]; found {
+        cacheMu.RUnlock()
+        return user, nil
+    }
+    cacheMu.RUnlock()
+
+    // Use singleflight for the expensive operation
+    result, err, shared := requestGroup.Do(fmt.Sprintf("user-%d", userID), func() (interface{}, error) {
+        // This function will only execute ONCE per key
+        // even if called by multiple goroutines simultaneously
+
+        // Simulate expensive database call
+        time.Sleep(100 * time.Millisecond)
+
+        user := User{
+            ID:    userID,
+            Name:  fmt.Sprintf("User %d", userID),
+            Email: fmt.Sprintf("user%d@example.com", userID),
+        }
+
+        // Update cache
+        cacheMu.Lock()
+        cache[userID] = user
+        cacheMu.Unlock()
+
+        return user, nil
+    })
+
+    if err != nil {
+        return User{}, err
+    }
+
+    if shared {
+        fmt.Printf("Request for user %d shared a result with another goroutine\\n", userID)
+    }
+
+    return result.(User), nil
+}
+\`\`\`
+
+## Real-World Example: API Gateway
+
+Let's look at a more practical example - an API gateway that fetches user profiles from an external service:
+
+\`\`\`go
+package main
+
+import (
+    "context"
+    "encoding/json"
+    "fmt"
+    "log"
+    "net/http"
+    "sync"
+    "golang.org/x/sync/singleflight"
+)
+
+// APIClient represents our external API client
+type APIClient struct {
+    httpClient *http.Client
+    sf         singleflight.Group
+}
+
+type UserProfile struct {
+    ID       int    \`json:"id"\`
+    Username string \`json:"username"\`
+    Email    string \`json:"email"\`
+}
+
+func NewAPIClient() *APIClient {
+    return &APIClient{
+        httpClient: &http.Client{Timeout: 10 * time.Second},
+        sf:         singleflight.Group{},
+    }
+}
+
+// GetUserProfile fetches a user profile with singleflight protection
+func (c *APIClient) GetUserProfile(ctx context.Context, userID int) (*UserProfile, error) {
+    key := fmt.Sprintf("user-profile-%d", userID)
+
+    // Singleflight ensures only one request per userID at a time
+    result, err, shared := c.sf.Do(key, func() (interface{}, error) {
+        return c.fetchUserProfileFromAPI(ctx, userID)
+    })
+
+    if err != nil {
+        return nil, err
+    }
+
+    if shared {
+        log.Printf("Request for user %d: shared result (saved API call!)", userID)
+    }
+
+    return result.(*UserProfile), nil
+}
+
+func (c *APIClient) fetchUserProfileFromAPI(ctx context.Context, userID int) (*UserProfile, error) {
+    url := fmt.Sprintf("https://api.example.com/users/%d", userID)
+    req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+    if err != nil {
+        return nil, err
+    }
+
+    resp, err := c.httpClient.Do(req)
+    if err != nil {
+        return nil, err
+    }
+    defer resp.Body.Close()
+
+    if resp.StatusCode != http.StatusOK {
+        return nil, fmt.Errorf("API returned status %d", resp.StatusCode)
+    }
+
+    var profile UserProfile
+    if err := json.NewDecoder(resp.Body).Decode(&profile); err != nil {
+        return nil, err
+    }
+
+    return &profile, nil
+}
+
+// HandleIncomingRequest simulates handling incoming HTTP requests
+func (c *APIClient) HandleIncomingRequest(userID int) {
+    ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+    defer cancel()
+
+    profile, err := c.GetUserProfile(ctx, userID)
+    if err != nil {
+        log.Printf("Error fetching user %d: %v", userID, err)
+        return
+    }
+
+    log.Printf("Successfully fetched: %+v", profile)
+}
+
+func main() {
+    client := NewAPIClient()
+
+    // Simulate 100 concurrent requests for the same user
+    var wg sync.WaitGroup
+    for i := 0; i < 100; i++ {
+        wg.Add(1)
+        go func() {
+            defer wg.Done()
+            client.HandleIncomingRequest(123)
+        }()
+    }
+    wg.Wait()
+
+    // Without singleflight: 100 API calls
+    // With singleflight: 1 API call (results shared)
+}
+\`\`\`
+
+## Advanced: Singleflight with Context
+
+Sometimes you need to cancel the in-flight operation. Here's how to use \`singleflight\` with context cancellation:
+
+\`\`\`go
+func (c *APIClient) GetUserProfileCtx(ctx context.Context, userID int) (*UserProfile, error) {
+    key := fmt.Sprintf("user-%d", userID)
+
+    // Create a channel for the result
+    type result struct {
+        profile *UserProfile
+        err     error
+    }
+    resultCh := make(chan result, 1)
+
+    // Launch the singleflight operation
+    go func() {
+        profile, err, _ := c.sf.Do(key, func() (interface{}, error) {
+            return c.fetchUserProfileFromAPI(ctx, userID)
+        })
+        resultCh <- result{profile.(*UserProfile), err}
+    }()
+
+    select {
+    case <-ctx.Done():
+        return nil, ctx.Err()
+    case res := <-resultCh:
+        return res.profile, res.err
+    }
+}
+\`\`\`
+
+## When to Use Singleflight
+
+**Good use cases:**
+- Database queries after cache expiration
+- Expensive computations (e.g., data processing, report generation)
+- External API calls (especially rate-limited ones)
+- Loading configuration or metadata
+- Any operation where duplicate work is wasteful
+
+**Not recommended:**
+- Fast, cheap operations (the overhead might not be worth it)
+- Operations that depend on caller-specific context
+- When each caller needs unique results
+
+## Best Practices
+
+1. **Use meaningful keys**: The key should uniquely identify the operation.
+2. **Combine with caching**: Use singleflight as a cache-stampede protection, not a replacement for caching.
+3. **Handle errors properly**: When the singleflight call errors, all waiting callers receive the error.
+4. **Forget results when done**: Use \`Forget()\` if you want to invalidate in-flight operations.
+
+\`\`\`go
+// Example: Forget in-flight results when data changes
+func (c *APIClient) InvalidateUser(userID int) {
+    key := fmt.Sprintf("user-%d", userID)
+    c.sf.Forget(key)
+}
+\`\`\`
 
 ## Conclusion
 
-Your tools should work *for* you, not against you. Spend time sharpening your axe.
+The \`singleflight\` package is a powerful tool for preventing duplicate work and protecting your systems from cache stampedes. It's simple to implement, has minimal overhead, and can significantly improve your application's performance under high load.
+
+Next time you find yourself with multiple goroutines executing the same expensive operation, remember: \`singleflight\` has your back!
 `;
 
 const POST_4 = `---
