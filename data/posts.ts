@@ -4,122 +4,6 @@ import { BlogPost, Frontmatter } from '../types';
 // For this browser-runtime demo, we store the raw markdown content strings here.
 
 const POST_1 = `---
-title: Understanding Interfaces in Go
-date: 2023-10-15
-description: A deep dive into how interfaces work in Go, duck typing, and best practices for composition.
-category: Go
-tags: [go, interfaces, design-patterns]
-slug: understanding-interfaces-in-go
----
-
-# Understanding Interfaces in Go
-
-Go interfaces are implicit. Unlike Java or C#, you don't need to explicitly implement an interface. If a type provides the methods declared in an interface, it implements it. This concept is known as **duck typing**: "If it walks like a duck and quacks like a duck, it's a duck."
-
-## Defining an Interface
-
-Here is a simple example of an interface definition:
-
-\`\`\`go
-package main
-
-import "fmt"
-
-// Speaker interface
-type Speaker interface {
-    Speak() string
-}
-
-type Dog struct {
-    Name string
-}
-
-func (d Dog) Speak() string {
-    return "Woof!"
-}
-
-type Cat struct {
-    Name string
-}
-
-func (c Cat) Speak() string {
-    return "Meow!"
-}
-
-func main() {
-    animals := []Speaker{
-        Dog{Name: "Buddy"},
-        Cat{Name: "Whiskers"},
-    }
-
-    for _, animal := range animals {
-        fmt.Println(animal.Speak())
-    }
-}
-\`\`\`
-
-## The Empty Interface
-
-The empty interface \`interface{}\` (or \`any\` in generic terms) has no methods. Since every type implements at least *zero* methods, every type satisfies the empty interface.
-
-> **Tip:** Use \`any\` judiciously. Overusing it defeats the purpose of Go's strong type system.
-
-## Best Practices
-
-1.  **Keep interfaces small.** The bigger the interface, the weaker the abstraction. prefer \`io.Reader\` and \`io.Writer\` over large monolithic interfaces.
-2.  **Accept interfaces, return structs.** This is a common Go proverb. It allows the caller to define the interface they need.
-
-Happy coding!
-`;
-
-const POST_2 = `---
-title: Building Resilient Microservices
-date: 2023-11-02
-description: Strategies for handling failures, retries, and circuit breakers in a distributed system.
-category: Distributed Systems
-tags: [microservices, reliability, architecture]
-slug: building-resilient-microservices
----
-
-# Building Resilient Microservices
-
-In a distributed system, failure is not an exception; it's the rule. Network glitches, database timeouts, and service unavailability happen. 
-
-## The Circuit Breaker Pattern
-
-When a service is failing, repeatedly calling it is wasteful and can cause cascading failures. A **Circuit Breaker** prevents an application from trying to execute an operation that's likely to fail.
-
-\`\`\`go
-// Pseudo-code for a circuit breaker middleware
-func (cb *CircuitBreaker) Execute(req Request) (Response, error) {
-    if cb.State == Open {
-        return nil, ErrCircuitOpen
-    }
-    
-    resp, err := cb.Service.Call(req)
-    if err != nil {
-        cb.RecordFailure()
-        return nil, err
-    }
-    
-    cb.Reset()
-    return resp, nil
-}
-\`\`\`
-
-## Idempotency
-
-Ensure your APIs are idempotent. If a client retries a request (e.g., creating a payment), the system should handle the duplicate gracefully without double-charging.
-
-### Key Takeaways
-
-*   Assume everything will fail.
-*   Implement **Timeouts** and **Deadlines**.
-*   Use **Retries** with **Exponential Backoff**.
-*   Monitor your golden signals: Latency, Traffic, Errors, Saturation.
-`;
-
-const POST_3 = `---
 title: Singleflight in Go: Preventing Duplicate Work
 date: 2025-01-20
 description: Learn how to use Go's singleflight package to prevent duplicate work and improve system performance with real-world examples.
@@ -441,41 +325,6 @@ The \`singleflight\` package is a powerful tool for preventing duplicate work an
 Next time you find yourself with multiple goroutines executing the same expensive operation, remember: \`singleflight\` has your back!
 `;
 
-const POST_4 = `---
-title: Concurrency in Go: Goroutines vs Threads
-date: 2024-02-20
-description: Understanding the M:N scheduler and why Goroutines are so lightweight.
-category: Go
-tags: [concurrency, performance, internals]
-slug: concurrency-in-go
----
-
-# Concurrency in Go
-
-One of Go's main selling points is its concurrency model. It treats concurrency as a first-class citizen.
-
-## OS Threads vs Goroutines
-
-OS threads have a large stack size (typically 1MB) and significant scheduling overhead. Goroutines, on the other hand, start with a tiny stack (2KB) that grows dynamically.
-
-### The Scheduler
-
-Go uses an M:N scheduler, meaning it multiplexes M goroutines onto N OS threads. This allows a Go program to spawn thousands (or millions) of goroutines without crashing the system.
-
-\`\`\`go
-func worker(id int, jobs <-chan int, results chan<- int) {
-    for j := range jobs {
-        fmt.Println("worker", id, "started  job", j)
-        time.Sleep(time.Second)
-        fmt.Println("worker", id, "finished job", j)
-        results <- j * 2
-    }
-}
-\`\`\`
-
-Concurrency is hard, but Go makes it accessible. Just remember: **Don't communicate by sharing memory; share memory by communicating.**
-`;
-
 // Helper to parse raw markdown string into structured data
 function parsePost(raw: string): BlogPost {
   const match = raw.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/);
@@ -509,7 +358,7 @@ function parsePost(raw: string): BlogPost {
   };
 }
 
-const rawPosts = [POST_1, POST_2, POST_3, POST_4];
+const rawPosts = [POST_1];
 export const allPosts: BlogPost[] = rawPosts.map(parsePost).sort((a, b) => {
   return new Date(b.frontmatter.date).getTime() - new Date(a.frontmatter.date).getTime();
 });
