@@ -23,7 +23,7 @@ export const Footer: React.FC = () => {
           </div>
           
           <div className="flex space-x-6">
-            <SocialLink href="https://github.com/knbr13/" icon={<Github size={20} />} label="GitHub" />
+            <SocialLink href="https://github.com/aladdin-io/" icon={<Github size={20} />} label="GitHub" />
             <SocialLink href="https://www.linkedin.com/in/abdullah-alaadine/" icon={<Linkedin size={20} />} label="LinkedIn" />
             <SocialLink href="https://www.instagram.com/a6h.aladdin" icon={<Instagram size={20} />} label="Instagram" />
           </div>
