@@ -22,6 +22,34 @@ The \`singleflight\` package (in \`golang.org/x/sync/singleflight\`) provides a 
 
 ### How It Works
 
+The core of \`singleflight\` is the \`Group\` type, which coordinates duplicate request suppression. Here's its essential API:
+
+\`\`\`go
+type Group struct {
+    // unexported fields
+}
+
+// Do executes and returns the results of the given function, making sure that
+// only one execution is in-flight for a given key at a time.
+func (g *Group) Do(key string, fn func() (any, error)) (v any, err error, shared bool)
+
+// Forget tells the Group to forget about a key. Future calls to Do with this
+// key will call the function rather than waiting for an earlier call to complete.
+func (g *Group) Forget(key string)
+
+// DoChan is like Do but returns a channel that will receive the results when ready.
+func (g *Group) DoChan(key string, fn func() (any, error)) <-chan Result
+\`\`\`
+
+The \`Do()\` method is what you'll use most often. It takes two arguments:
+1. **key** (string): A unique identifier for the operation being deduplicated
+2. **fn** (function): The expensive function to execute
+
+And it returns three values:
+1. **v** (any): The result from the function (you'll need to type-assert this)
+2. **err** (error): Any error returned by the function
+3. **shared** (bool): Whether this result was shared with other waiting goroutines (true if you weren't the first caller)
+
 When multiple goroutines call \`Do()\` with the **same key**, here's what happens:
 
 1. **First caller** executes the function
@@ -29,7 +57,7 @@ When multiple goroutines call \`Do()\` with the **same key**, here's what happen
 3. **All callers** receive the **same result** when the function completes
 4. The \`shared\` boolean return value indicates whether the result was shared (true if you were not the first caller)
 
-> **Important:** Singleflight is **NOT a cache**. It only deduplicates **in-flight** requests. Once the function completes and all waiting goroutines receive the result, the next request with the same key will execute the function again. It's about preventing simultaneous duplicate work, not storing results for future use.
+> **Important:** Singleflight is **NOT a cache**. It only deduplicates **in-flight** requests. Once the function completes and all waiting goroutines receive the result, the next request with the same key will execute the function again. It's about **preventing SIMULTANEOUS duplicate work**, not storing results for future use.
 
 ## The Problem: Thundering Herd
 
@@ -91,7 +119,7 @@ func getUserData(userID int) (User, error) {
     cacheMu.RUnlock()
 
     // Use singleflight for the expensive operation
-    result, err, shared := requestGroup.Do(fmt.Sprintf("user-%d", userID), func() (interface{}, error) {
+    result, err, shared := requestGroup.Do(fmt.Sprintf("user-%d", userID), func() (any, error) {
         // This function will only execute ONCE per key
         // even if called by multiple goroutines simultaneously
 
@@ -159,7 +187,7 @@ type UserProfile struct {
 func NewAPIClient() *APIClient {
     return &APIClient{
         httpClient: &http.Client{Timeout: 10 * time.Second},
-        sf:         singleflight.Group{},
+        sf:         singleflight.Group{}, // this is optional, zero-value is usable
     }
 }
 
@@ -168,7 +196,7 @@ func (c *APIClient) GetUserProfile(ctx context.Context, userID int) (*UserProfil
     key := fmt.Sprintf("user-profile-%d", userID)
 
     // Singleflight ensures only one request per userID at a time
-    result, err, shared := c.sf.Do(key, func() (interface{}, error) {
+    result, err, shared := c.sf.Do(key, func() (any, error) {
         return c.fetchUserProfileFromAPI(ctx, userID)
     })
 
@@ -275,7 +303,7 @@ func (c *APIClient) GetUserProfileCtx(ctx context.Context, userID int) (*UserPro
 
     // Launch the singleflight operation
     go func() {
-        profile, err, _ := c.sf.Do(key, func() (interface{}, error) {
+        profile, err, _ := c.sf.Do(key, func() (any, error) {
             return c.fetchUserProfileFromAPI(ctx, userID)
         })
         resultCh <- result{profile.(*UserProfile), err}
