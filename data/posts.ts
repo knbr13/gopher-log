@@ -286,38 +286,6 @@ This is worth repeating because it's a common misconception:
 
 They solve different problems and work best when used together!
 
-## Advanced: Singleflight with Context
-
-Sometimes you need to cancel the in-flight operation. Here's how to use \`singleflight\` with context cancellation:
-
-\`\`\`go
-func (c *APIClient) GetUserProfileCtx(ctx context.Context, userID int) (*UserProfile, error) {
-    key := fmt.Sprintf("user-%d", userID)
-
-    // Create a channel for the result
-    type result struct {
-        profile *UserProfile
-        err     error
-    }
-    resultCh := make(chan result, 1)
-
-    // Launch the singleflight operation
-    go func() {
-        profile, err, _ := c.sf.Do(key, func() (any, error) {
-            return c.fetchUserProfileFromAPI(ctx, userID)
-        })
-        resultCh <- result{profile.(*UserProfile), err}
-    }()
-
-    select {
-    case <-ctx.Done():
-        return nil, ctx.Err()
-    case res := <-resultCh:
-        return res.profile, res.err
-    }
-}
-\`\`\`
-
 ## When to Use Singleflight
 
 **Good use cases:**
