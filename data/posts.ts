@@ -90,65 +90,65 @@ Here's how to implement \`singleflight\` to solve this problem:
 package main
 
 import (
-    "fmt"
-    "sync"
-    "time"
+	"fmt"
+	"sync"
+	"time"
 
-    "golang.org/x/sync/singleflight"
+	"golang.org/x/sync/singleflight"
 )
 
 type User struct {
-    ID    int
-    Name  string
-    Email string
+	ID    int
+	Name  string
+	Email string
 }
 
 var (
-    cache    = make(map[int]User)
-    cacheMu  sync.RWMutex
-    requestGroup singleflight.Group
+	cache        = make(map[int]User)
+	cacheMu      sync.RWMutex
+	requestGroup singleflight.Group
 )
 
 func getUserData(userID int) (User, error) {
-    // Check cache first (fast path)
-    cacheMu.RLock()
-    if user, found := cache[userID]; found {
-        cacheMu.RUnlock()
-        return user, nil
-    }
-    cacheMu.RUnlock()
+	// Check cache first (fast path)
+	cacheMu.RLock()
+	if user, found := cache[userID]; found {
+		cacheMu.RUnlock()
+		return user, nil
+	}
+	cacheMu.RUnlock()
 
-    // Use singleflight for the expensive operation
-    result, err, shared := requestGroup.Do(fmt.Sprintf("user-%d", userID), func() (any, error) {
-        // This function will only execute ONCE per key
-        // even if called by multiple goroutines simultaneously
+	// Use singleflight for the expensive operation
+	result, err, shared := requestGroup.Do(fmt.Sprintf("user-%d", userID), func() (any, error) {
+		// This function will only execute ONCE per key
+		// even if called by multiple goroutines simultaneously
 
-        // Simulate expensive database call
-        time.Sleep(100 * time.Millisecond)
+		// Simulate expensive database call
+		time.Sleep(100 * time.Millisecond)
 
-        user := User{
-            ID:    userID,
-            Name:  fmt.Sprintf("User %d", userID),
-            Email: fmt.Sprintf("user%d@example.com", userID),
-        }
+		user := User{
+			ID:    userID,
+			Name:  fmt.Sprintf("User %d", userID),
+			Email: fmt.Sprintf("user%d@example.com", userID),
+		}
 
-        // Update cache
-        cacheMu.Lock()
-        cache[userID] = user
-        cacheMu.Unlock()
+		// Update cache
+		cacheMu.Lock()
+		cache[userID] = user
+		cacheMu.Unlock()
 
-        return user, nil
-    })
+		return user, nil
+	})
 
-    if err != nil {
-        return User{}, err
-    }
+	if err != nil {
+		return User{}, err
+	}
 
-    if shared {
-        fmt.Printf("Request for user %d shared a result with another goroutine\\n", userID)
-    }
+	if shared {
+		fmt.Printf("Request for user %d shared a result with another goroutine\\n", userID)
+	}
 
-    return result.(User), nil
+	return result.(User), nil
 }
 \`\`\`
 
@@ -162,110 +162,111 @@ Let's look at a more practical example - an API gateway that fetches user profil
 package main
 
 import (
-    "context"
-    "encoding/json"
-    "fmt"
-    "log"
-    "net/http"
-    "sync"
- 
-    "golang.org/x/sync/singleflight"
+	"context"
+	"encoding/json"
+	"fmt"
+	"log"
+	"net/http"
+	"sync"
+	"time"
+
+	"golang.org/x/sync/singleflight"
 )
 
 // APIClient represents our external API client
 type APIClient struct {
-    httpClient *http.Client
-    sf         singleflight.Group
+	httpClient *http.Client
+	sf         singleflight.Group
 }
 
 type UserProfile struct {
-    ID       int    \`json:"id"\`
-    Username string \`json:"username"\`
-    Email    string \`json:"email"\`
+	ID       int    \`json:"id"\`
+	Username string \`json:"username"\`
+	Email    string \`json:"email"\`
 }
 
 func NewAPIClient() *APIClient {
-    return &APIClient{
-        httpClient: &http.Client{Timeout: 10 * time.Second},
-        sf:         singleflight.Group{}, // this is optional, zero-value is usable
-    }
+	return &APIClient{
+		httpClient: &http.Client{Timeout: 10 * time.Second},
+		sf:         singleflight.Group{}, // this is optional, zero-value is usable
+	}
 }
 
 // GetUserProfile fetches a user profile with singleflight protection
 func (c *APIClient) GetUserProfile(ctx context.Context, userID int) (*UserProfile, error) {
-    key := fmt.Sprintf("user-profile-%d", userID)
+	key := fmt.Sprintf("user-profile-%d", userID)
 
-    // Singleflight ensures only one request per userID at a time
-    result, err, shared := c.sf.Do(key, func() (any, error) {
-        return c.fetchUserProfileFromAPI(ctx, userID)
-    })
+	// Singleflight ensures only one request per userID at a time
+	result, err, shared := c.sf.Do(key, func() (any, error) {
+		return c.fetchUserProfileFromAPI(ctx, userID)
+	})
 
-    if err != nil {
-        return nil, err
-    }
+	if err != nil {
+		return nil, err
+	}
 
-    if shared {
-        log.Printf("Request for user %d: shared result (saved API call!)", userID)
-    }
+	if shared {
+		log.Printf("Request for user %d: shared result (saved API call!)", userID)
+	}
 
-    return result.(*UserProfile), nil
+	return result.(*UserProfile), nil
 }
 
 func (c *APIClient) fetchUserProfileFromAPI(ctx context.Context, userID int) (*UserProfile, error) {
-    url := fmt.Sprintf("https://api.example.com/users/%d", userID)
-    req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
-    if err != nil {
-        return nil, err
-    }
+	url := fmt.Sprintf("https://api.example.com/users/%d", userID)
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
 
-    resp, err := c.httpClient.Do(req)
-    if err != nil {
-        return nil, err
-    }
-    defer resp.Body.Close()
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
 
-    if resp.StatusCode != http.StatusOK {
-        return nil, fmt.Errorf("API returned status %d", resp.StatusCode)
-    }
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("API returned status %d", resp.StatusCode)
+	}
 
-    var profile UserProfile
-    if err := json.NewDecoder(resp.Body).Decode(&profile); err != nil {
-        return nil, err
-    }
+	var profile UserProfile
+	if err := json.NewDecoder(resp.Body).Decode(&profile); err != nil {
+		return nil, err
+	}
 
-    return &profile, nil
+	return &profile, nil
 }
 
 // HandleIncomingRequest simulates handling incoming HTTP requests
 func (c *APIClient) HandleIncomingRequest(userID int) {
-    ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-    defer cancel()
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
 
-    profile, err := c.GetUserProfile(ctx, userID)
-    if err != nil {
-        log.Printf("Error fetching user %d: %v", userID, err)
-        return
-    }
+	profile, err := c.GetUserProfile(ctx, userID)
+	if err != nil {
+		log.Printf("Error fetching user %d: %v", userID, err)
+		return
+	}
 
-    log.Printf("Successfully fetched: %+v", profile)
+	log.Printf("Successfully fetched: %+v", profile)
 }
 
 func main() {
-    client := NewAPIClient()
+	client := NewAPIClient()
 
-    // Simulate 100 concurrent requests for the same user
-    var wg sync.WaitGroup
-    for i := 0; i < 100; i++ {
-        wg.Add(1)
-        go func() {
-            defer wg.Done()
-            client.HandleIncomingRequest(123)
-        }()
-    }
-    wg.Wait()
+	// Simulate 100 concurrent requests for the same user
+	var wg sync.WaitGroup
+	for i := 0; i < 100; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			client.HandleIncomingRequest(123)
+		}()
+	}
+	wg.Wait()
 
-    // Without singleflight: 100 API calls
-    // With singleflight: 1 API call (results shared)
+	// Without singleflight: 100 API calls
+	// With singleflight: 1 API call (results shared)
 }
 \`\`\`
 
