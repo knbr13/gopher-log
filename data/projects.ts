@@ -4,7 +4,7 @@ export const projects: Project[] = [
   {
     name: "gitcs",
     description: "Command line tool that allows developers to scan their local Git repositories and generate a visual contributions graph. Works across multiple Git services and functions offline.",
-    githubUrl: "https://github.com/aladdin-io/gitcs",
+    githubUrl: "https://github.com/hrtsegv/gitcs",
     language: "Go",
     features: [
       "Analyze local Git repositories",
@@ -20,7 +20,7 @@ export const projects: Project[] = [
   {
     name: "watcher",
     description: "File system watcher that automates workflows with surgical precision. Monitors file events and executes user-defined commands based on glob patterns.",
-    githubUrl: "https://github.com/aladdin-io/watcher",
+    githubUrl: "https://github.com/hrtsegv/watcher",
     language: "Go",
     features: [
       "Real-time file system monitoring",
@@ -36,7 +36,7 @@ export const projects: Project[] = [
   {
     name: "http-client",
     description: "HTTP Client is a command-line tool for executing HTTP requests with ease. Perfect for API testing and automation workflows.",
-    githubUrl: "https://github.com/aladdin-io/http-client",
+    githubUrl: "https://github.com/hrtsegv/http-client",
     language: "Go",
     features: [
       "Command-line HTTP requests",
@@ -52,7 +52,7 @@ export const projects: Project[] = [
   {
     name: "incache",
     description: "Simple, fast, concurrent in-memory database. Designed for high-performance caching and temporary data storage.",
-    githubUrl: "https://github.com/aladdin-io/incache",
+    githubUrl: "https://github.com/hrtsegv/incache",
     language: "Go",
     features: [
       "In-memory data storage",
@@ -68,7 +68,7 @@ export const projects: Project[] = [
   {
     name: "dugo",
     description: "File deduplication tool written in Go. Efficiently identifies and removes duplicate files from your system.",
-    githubUrl: "https://github.com/aladdin-io/dugo",
+    githubUrl: "https://github.com/hrtsegv/dugo",
     language: "Go",
     features: [
       "Fast duplicate detection",
@@ -84,7 +84,7 @@ export const projects: Project[] = [
   {
     name: "maze-game",
     description: "Test your skills, tackle mazes, and race against the clock. Pick your difficulty level and dive into the challenge!",
-    githubUrl: "https://github.com/aladdin-io/maze-game",
+    githubUrl: "https://github.com/hrtsegv/maze-game",
     language: "Go",
     features: [
       "Multiple difficulty levels",
